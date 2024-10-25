@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>Chat en Tiempo Real</h1>
+        </div>
+
+        <div class="chat-messages" id="chat-messages">
+            <!-- Aquí se mostrarán los mensajes -->
+        </div>
+
+        <div class="chat-input">
+            <label class="custom-file-upload">
+                <input type="file" id="file-input" accept="image/*,audio/*,application/pdf" style="display: none;">
+                <span id="file-name" class="file-name">&#128194;</span>
+            </label>
+            <button id="record-button">🎤 Grabar Audio</button>
+            <input type="text" id="message-input" placeholder="Escribe un mensaje...">
+            <button id="send-button">Enviar</button>
+        </div>
+    </div>
+
+    <script>
+        let socket;
+        let username;
+        let mediaRecorder;
+        let audioChunks = [];
+
+        // Solicitar nombre de usuario al cargar la página
+        window.onload = function() {
+            username = prompt('Por favor, ingresa tu nombre de usuario:');
+            if (!username) {
+                username = 'Anónimo'; // Si no ingresa nada, se asigna 'Anónimo'
+            }
+
+            // Establecer la conexión WebSocket
+            socket = new WebSocket('ws://192.168.0.104:3000');
+
+            // Enviar el nombre de usuario al servidor
+            socket.onopen = () => {
+                console.log('Conectado al servidor WebSocket');
+                socket.send(JSON.stringify({ tipo: 'nombreUsuario', usuario: username }));
+            };
+
+            // Recibir mensajes del servidor
+            socket.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.tipo === 'historial') {
+                    data.mensajes.forEach(mensaje => agregarMensaje(mensaje));
+                } else if (data.tipo === 'nuevoMensaje') {
+                    agregarMensaje(data.mensaje);
+                }
+            };
+
+            // Enviar mensajes
+            document.getElementById('send-button').addEventListener('click', () => {
+                const mensajeInput = document.getElementById('message-input');
+                const fileInput = document.getElementById('file-input');
+                const fileNameElement = document.getElementById('file-name');
+
+                if (mensajeInput.value.trim() !== '' || fileInput.files.length > 0) {
+                    const mensaje = {
+                        texto: mensajeInput.value,
+                        usuario: username,
+                        hora: new Date().toLocaleTimeString()
+                    };
+
+                    if (fileInput.files.length > 0) {
+                        const file = fileInput.files[0];
+                        const reader = new FileReader();
+
+                        reader.onload = (event) => {
+                            mensaje.archivo = event.target.result; // Almacena el archivo como base64
+                            console.log('Enviando mensaje:', mensaje); // Para depuración
+                            socket.send(JSON.stringify(mensaje));
+                        };
+                        reader.readAsDataURL(file); // Lee el archivo como Data URL
+                    } else {
+                        console.log('Enviando mensaje:', mensaje); // Para depuración
+                        socket.send(JSON.stringify(mensaje));
+                    }
+
+                    mensajeInput.value = '';
+                    fileInput.value = ''; // Limpiar el input de archivo
+                    fileNameElement.textContent = '\u{1F4C2}';
+                }
+            });
+
+            // Agregar evento para la grabación de audio
+            document.getElementById('record-button').addEventListener('click', () => {
+                if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+                    iniciarGrabacion();
+                } else {
+                    detenerGrabacion();
+                }
+            });
+        };
+
+        // Función para iniciar la grabación de audio
+        function iniciarGrabacion() {
+            // Verificar si getUserMedia está disponible
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+                    mediaRecorder = new MediaRecorder(stream);
+                    mediaRecorder.start();
+                    audioChunks = [];
+
+                    mediaRecorder.addEventListener('dataavailable', event => {
+                        audioChunks.push(event.data);
+                    });
+
+                    mediaRecorder.addEventListener('stop', () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/mpeg' });
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                            const base64AudioMessage = reader.result;
+                            const mensaje = {
+                                texto: '',
+                                usuario: username,
+                                hora: new Date().toLocaleTimeString(),
+                                archivo: base64AudioMessage
+                            };
+                            socket.send(JSON.stringify(mensaje));
+                        };
+                        reader.readAsDataURL(audioBlob);
+                    });
+
+                    document.getElementById('record-button').textContent = '🛑 Detener Grabación';
+                }).catch(error => {
+                    console.error('Error accediendo al micrófono:', error);
+                    alert('Error accediendo al micrófono. Por favor, verifica los permisos.');
+                });
+            } else {
+                alert('Tu navegador no soporta getUserMedia.');
+            }
+
+
+        }
+
+        // Función para detener la grabación de audio
+        function detenerGrabacion() {
+            mediaRecorder.stop();
+            document.getElementById('record-button').textContent = '🎤 Grabar Audio';
+        }
+
+        // Función para agregar mensajes al DOM
+        function agregarMensaje(mensaje) {
+            const mensajeElemento = document.createElement('div');
+            mensajeElemento.classList.add('message');
+            mensajeElemento.classList.add(mensaje.usuario === username ? 'sent' : 'received');
+
+            let contenidoMensaje = `<p><strong class="message-user">${mensaje.usuario}</strong>: ${mensaje.texto}</p>`;
+
+            if (mensaje.archivo) {
+                if (mensaje.archivo.startsWith('data:audio')) {
+                    // Mostrar reproductor de audio
+                    contenidoMensaje += `<audio controls><source src="${mensaje.archivo}" type="audio/mpeg"></audio>`;
+                } else if (mensaje.archivo.startsWith('data:application/pdf')) {
+                    // Mostrar ícono de PDF
+                    contenidoMensaje += `<img src="path_to_pdf_icon" alt="Archivo PDF" style="width: 50px; height: 50px;">`;
+                } else if (mensaje.archivo.startsWith('data:image')) {
+                    // Mostrar imagen
+                    contenidoMensaje += `<img src="${mensaje.archivo}" alt="Archivo enviado" style="max-width: 100px; max-height: 100px;">`;
+                }
+            }
+
+            mensajeElemento.innerHTML = contenidoMensaje + `<span class="message-time">${mensaje.hora}</span>`;
+            document.getElementById('chat-messages').appendChild(mensajeElemento);
+            document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
+        }
+
+        // Actualiza el nombre del archivo o restablece a icono
+        document.getElementById('file-input').addEventListener('change', function(event) {
+            const fileName = event.target.files.length > 0 ? event.target.files[0].name : '';
+            const fileNameElement = document.getElementById('file-name');
+
+            if (fileName) {
+                fileNameElement.textContent = fileName;
+            } else {
+                fileNameElement.textContent = '\u{1F4C2}';
+            }
+        });
+    </script>
+</body>
+</html>

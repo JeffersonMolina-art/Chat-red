@@ -1,0 +1,150 @@
+/* General */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f0f0f0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh; /* Limitar la altura mínima de la pantalla */
+}
+
+/* Chat container */
+.chat-container {
+    width: 100%;
+    height: 100vh; /* Ocupa toda la pantalla */
+    display: flex;
+    flex-direction: column;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 0; /* Quita el borde redondeado */
+}
+
+/* Header */
+.chat-header {
+    background-color: #007BFF;
+    color: white;
+    padding: 15px;
+    text-align: center;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+/* Messages */
+.chat-messages {
+    flex-grow: 1;
+    padding: 15px;
+    overflow-y: auto;
+    background-color: #e5ddd5;
+    scrollbar-width: thin; /* Firefox */
+    display: flex;
+    flex-direction: column; /* Mensajes apilados verticalmente */
+}
+
+/* Mensajes enviados */
+.message.sent {
+    align-items: flex-end;
+    text-align: right;
+}
+
+/* Mensajes recibidos */
+.message.received {
+    align-items: flex-start;
+    text-align: left;
+}
+
+/* Estilo de los mensajes */
+.message {
+    margin-bottom: 15px;
+    max-width: 80%;
+    word-wrap: break-word;
+    display: flex; /* Flex para el contenido */
+    flex-direction: column; /* Permitir apilamiento vertical */
+}
+
+.message p {
+    margin: 5px 0;
+    padding: 10px;
+    border-radius: 8px;
+}
+
+/* Colores para los mensajes */
+.message.sent p {
+    background-color: #DCF8C6; /* Color verde claro para mensajes enviados */
+}
+
+.message.received p {
+    background-color: #d3d3d3; /* Color gris claro para mensajes recibidos */
+}
+
+/* Estilo de las imágenes en los mensajes */
+.message-image {
+    width: 100%; /* Asegúrate de que la imagen ocupe el ancho completo del contenedor */
+    max-width: 600px; /* O el tamaño máximo que desees */
+    height: 200px; /* Mantiene la relación de aspecto */
+    border-radius: 8px; /* Bordes redondeados */
+    margin-top: 5px; /* Espacio entre el texto y la imagen */
+}
+
+/* Estilo de tiempo y usuario */
+.message-time {
+    font-size: 0.75rem;
+    color: #888;
+}
+
+.message-user {
+    font-weight: bold;
+}
+
+
+/* Input del chat */
+.chat-input {
+    display: flex;
+    padding: 15px;
+    background-color: #ffffff;
+    border-top: 1px solid #ddd;
+}
+
+.chat-input input[type="text"] {
+    flex-grow: 1;
+    padding: 10px;
+    border-radius: 20px;
+    border: 1px solid #ddd;
+    outline: none;
+}
+
+.custom-file-upload {
+    display: inline-block;
+    padding: 10px 15px;
+    cursor: pointer;
+    background-color: #007BFF;
+    color: white;
+    border-radius: 20px;
+    margin-right: 10px;
+}
+
+.chat-input button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 20px;
+    background-color: #0056b3;
+    color: white;
+    cursor: pointer;
+}
+
+.chat-input button:hover {
+    background-color: #41d12e;
+}
+/* Ocultar el nombre del archivo por defecto */
+.file-name {
+    display: inline-block;
+    margin-left: 10px;
+    color: #000000; /* Color de texto para el nombre del archivo */
+    font-size: 1.2rem; /* Ajusta el tamaño del texto si es necesario */
+}
